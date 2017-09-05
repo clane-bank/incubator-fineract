@@ -59,7 +59,7 @@ import org.springframework.web.filter.GenericFilterBean;
  * Used to support Oauth2 authentication and the service is loaded only when "oauth" profile is active.
  */
 @Service(value = "tenantIdentifierProcessingFilter")
-@Profile("oauth")
+@Profile({"oauth", "gluu"})
 public class TenantAwareTenantIdentifierFilter extends GenericFilterBean {
 
     private static boolean firstRequestProcessed = false;

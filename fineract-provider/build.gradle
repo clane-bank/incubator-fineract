@@ -202,6 +202,13 @@ if (project.hasProperty('security') && project.getProperty('security') == 'oauth
 	    into 'src/main/resources/'
 	    include '*.properties'
 	}
+}
+else if (project.hasProperty('security') && project.getProperty('security') == 'gluu') {
+	copy {
+	    from './properties/gluu/'
+	    into 'src/main/resources/'
+	    include '*.properties'
+	}
 }  else {
 	copy {
 	    from './properties/basicauth/'

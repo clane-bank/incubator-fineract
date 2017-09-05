@@ -25,11 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.persistence.EntityExistsException;
 import javax.persistence.PersistenceException;
 
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.fineract.commands.service.CommandWrapperBuilder;
+import org.apache.fineract.gluu.uma.UmaService;
 import org.apache.fineract.infrastructure.core.api.JsonCommand;
 import org.apache.fineract.infrastructure.core.data.ApiParameterError;
 import org.apache.fineract.infrastructure.core.data.CommandProcessingResult;
@@ -87,13 +87,15 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
     private final AppUserPreviousPasswordRepository appUserPreviewPasswordRepository;
     private final StaffRepositoryWrapper staffRepositoryWrapper;
     private final ClientRepositoryWrapper clientRepositoryWrapper;
+    private final UmaService umaService;
 
+    
     @Autowired
     public AppUserWritePlatformServiceJpaRepositoryImpl(final PlatformSecurityContext context, final AppUserRepository appUserRepository,
             final UserDomainService userDomainService, final OfficeRepositoryWrapper officeRepositoryWrapper, final RoleRepository roleRepository,
             final PlatformPasswordEncoder platformPasswordEncoder, final UserDataValidator fromApiJsonDeserializer,
             final AppUserPreviousPasswordRepository appUserPreviewPasswordRepository, final StaffRepositoryWrapper staffRepositoryWrapper,
-            final ClientRepositoryWrapper clientRepositoryWrapper) {
+            final ClientRepositoryWrapper clientRepositoryWrapper, final UmaService umaService) {
         this.context = context;
         this.appUserRepository = appUserRepository;
         this.userDomainService = userDomainService;
@@ -104,6 +106,7 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
         this.appUserPreviewPasswordRepository = appUserPreviewPasswordRepository;
         this.staffRepositoryWrapper = staffRepositoryWrapper;
         this.clientRepositoryWrapper = clientRepositoryWrapper;
+        this.umaService = umaService;
     }
 
     @Transactional
@@ -148,9 +151,14 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
 
             appUser = AppUser.fromJson(userOffice, linkedStaff, allRoles, clients, command);
 
+            final String unencodedPassword = appUser.getPassword();
+            
             final Boolean sendPasswordToEmail = command.booleanObjectValueOfParameterNamed("sendPasswordToEmail");
             this.userDomainService.create(appUser, sendPasswordToEmail);
 
+            //create gluu user via UMA
+            this.umaService.createUser(unencodedPassword, appUser);
+     
             return new CommandProcessingResultBuilder() //
                     .withCommandId(command.commandId()) //
                     .withEntityId(appUser.getId()) //
@@ -194,6 +202,7 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
             if (userToUpdate == null) { throw new UserNotFoundException(userId); }
 
             final AppUserPreviousPassword currentPasswordToSaveAsPreview = getCurrentPasswordToSaveAsPreview(userToUpdate, command);
+            final String originalUsername = userToUpdate.getUsername();
             
             Collection<Client> clients = null;
             boolean isSelfServiceUser = userToUpdate.isSelfServiceUser();
@@ -238,6 +247,19 @@ public class AppUserWritePlatformServiceJpaRepositoryImpl implements AppUserWrit
             if (!changes.isEmpty()) {
                 this.appUserRepository.saveAndFlush(userToUpdate);
 
+                
+	            // update gluu user via UMA
+	            if(  command.hasParameter("password") || 
+	               	 changes.containsKey("username")  || 
+	               	 changes.containsKey("firstname") || 
+	               	 changes.containsKey("lastname")  ||
+	               	 changes.containsKey("email")
+	               	 ) {
+	                	this.umaService.updateUser(command.stringValueOfParameterNamed("password"), 
+	               			originalUsername, userToUpdate);
+	               }
+                
+                
                 if (currentPasswordToSaveAsPreview != null) {
                     this.appUserPreviewPasswordRepository.save(currentPasswordToSaveAsPreview);
                 }

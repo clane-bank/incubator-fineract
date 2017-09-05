@@ -49,7 +49,7 @@ import org.springframework.stereotype.Component;
  */
 @Path("/userdetails")
 @Component
-@Profile("oauth")
+@Profile({"oauth", "gluu"})
 @Scope("singleton")
 public class UserDetailsApiResource {
 

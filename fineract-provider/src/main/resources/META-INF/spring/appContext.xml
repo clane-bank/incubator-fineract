@@ -43,7 +43,7 @@
 										  org.apache.fineract.commands.service.*,
 										  org.apache.fineract.commands.*,
 										  org.apache.fineract.audit.*,
-										 org.apache.fineract.infrastructure.creditbureau.*,
+										  org.apache.fineract.infrastructure.creditbureau.*,
 										  org.apache.fineract.infrastructure.*,
 										  org.apache.fineract.scheduledjobs.*,
 										  org.apache.fineract.organisation.*,
@@ -56,6 +56,8 @@
 										  org.apache.fineract.template.service.*,
 										  org.apache.fineract.useradministration.*,
 										  org.apache.fineract.batch,
+										  org.apache.fineract.gluu.authentication,
+										  org.apache.fineract.gluu.uma,
 										  org.mifosplatform.infrastructure.report.service">
 		<context:exclude-filter expression="org.springframework.stereotype.Controller"
 			type="annotation" />
